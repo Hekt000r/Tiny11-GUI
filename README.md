@@ -9,6 +9,8 @@ Credits to [NTDEV](https://github.com/ntdevlabs) for the [original Tiny11 builde
 
 Download Tiny11Builder.exe from [the latest release](https://github.com/Hekt000r/Tiny11-GUI/releases)
 
+Then run it as Administrator.
+
 
 The GUI is very simple.
 
