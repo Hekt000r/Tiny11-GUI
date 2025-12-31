@@ -1,0 +1,13 @@
+# Build Artifacts
+/dist/
+*.exe
+*.sed
+*.iso
+
+# Downloaded Dependencies
+core/oscdimg.exe
+core/autounattend.xml
+
+# Temporary/Cache
+*.tmp
+*.log

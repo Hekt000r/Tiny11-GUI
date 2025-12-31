@@ -53,12 +53,25 @@ function Build-Tiny11 {
         [int]$ImageIndex,
         [bool]$RemoveEdge,
         [bool]$DisableTelemetry,
+        [string]$OutputPath,
         [ScriptBlock]$OnProgress
     )
 
     process {
         if (-not $IsoPath) { throw "ISO Path is required. Please select a Windows ISO or drive." }
         if (-not $ScratchDrive) { throw "Scratch Drive is required. Please specify a drive letter (e.g., 'C')." }
+        
+        # Default Output Path Logic: If not provided, save next to input ISO
+        if ([string]::IsNullOrWhiteSpace($OutputPath)) {
+             if (Test-Path $IsoPath -PathType Leaf) {
+                 $inputDir = Split-Path -Path $IsoPath -Parent
+                 $inputName = [System.IO.Path]::GetFileNameWithoutExtension($IsoPath)
+                 $OutputPath = Join-Path $inputDir "$inputName`_tiny11.iso"
+             } else {
+                 # Fallback for drive-letter input
+                 $OutputPath = Join-Path ([Environment]::GetFolderPath("Desktop")) "tiny11.iso"
+             }
+        }
 
         # Initialize variables early for safe cleanup in catch block
         $isMounted = $false
@@ -134,6 +147,41 @@ function Build-Tiny11 {
             else {
                 throw "Could not find install.wim or install.esd"
             }
+
+            #---------[ Boot.wim Patching (Clean Install Support) ]---------#
+            $OnProgress.Invoke("Patching boot.wim (WinPE)...", 15)
+            $bootWim = Join-Path $workingDir "sources\boot.wim"
+            
+            if (Test-Path $bootWim) {
+                # Ensure we have Write access (ISO files are Read-Only by default)
+                & takeown "/F" $bootWim | Out-Null
+                & icacls $bootWim "/grant" "$($adminGroup.Value):(F)" | Out-Null
+                Set-ItemProperty -Path $bootWim -Name IsReadOnly -Value $false | Out-Null
+
+                # Mount boot.wim Index 2 (Setup)
+                Mount-WindowsImage -ImagePath $bootWim -Index 2 -Path $mountDir | Out-Null
+                
+                # Verify mount success by checking a file
+                if (Test-Path (Join-Path $mountDir "Windows\System32\config\SYSTEM")) {
+                    # Load SYSTEM hive
+                    $bootSysHive = Join-Path $mountDir "Windows\System32\config\SYSTEM"
+                    & 'reg' 'load' "HKLM\zBOOT_SYSTEM" $bootSysHive | Out-Null
+                    
+                    # Apply LabConfig bypasses
+                    Set-RegistryValue 'HKLM\zBOOT_SYSTEM\Setup\LabConfig' 'BypassCPUCheck' 'REG_DWORD' '1'
+                    Set-RegistryValue 'HKLM\zBOOT_SYSTEM\Setup\LabConfig' 'BypassRAMCheck' 'REG_DWORD' '1'
+                    Set-RegistryValue 'HKLM\zBOOT_SYSTEM\Setup\LabConfig' 'BypassSecureBootCheck' 'REG_DWORD' '1'
+                    Set-RegistryValue 'HKLM\zBOOT_SYSTEM\Setup\LabConfig' 'BypassStorageCheck' 'REG_DWORD' '1'
+                    Set-RegistryValue 'HKLM\zBOOT_SYSTEM\Setup\LabConfig' 'BypassTPMCheck' 'REG_DWORD' '1'
+                    
+                    # Unload Hive
+                    & 'reg' 'unload' "HKLM\zBOOT_SYSTEM" | Out-Null
+                }
+                
+                # Unmount and Commit
+                Dismount-WindowsImage -Path $mountDir -Save | Out-Null
+            }
+
 
             #---------[ Mounting ]---------#
             $OnProgress.Invoke("Mounting Windows image...", 20)
@@ -260,10 +308,11 @@ function Build-Tiny11 {
             #---------[ ISO Creation ]---------#
             $OnProgress.Invoke("Creating ISO image...", 95)
             
-            # Locate or download autounattend.xml
+            # Locate or download autounattend.xml (Prioritize current dir for flat EXE)
             $autounattendFile = Join-Path -Path $PSScriptRoot -ChildPath "autounattend.xml"
+            
             if (-not (Test-Path -Path $autounattendFile)) {
-                # Check parent folder (root)
+                # Check parent folder (root) - Fallback for Dev
                 $parentFolder = Split-Path -Path $PSScriptRoot -Parent
                 $autounattendFile = Join-Path -Path $parentFolder -ChildPath "autounattend.xml"
             }
@@ -282,13 +331,13 @@ function Build-Tiny11 {
             if ($hostArch -eq "AMD64") { $hostArch = "x64" }
             
             $adkPath = "C:\Program Files (x86)\Windows Kits\10\Assessment and Deployment Kit\Deployment Tools\$hostArch\Oscdimg\oscdimg.exe"
-            $localOscdimg = Join-Path -Path $PSScriptRoot -ChildPath "oscdimg.exe"
+            $localOscdimg = Join-Path -Path $PSScriptRoot -ChildPath "oscdimg.exe" # Current dir (flat EXE)
             $oscdimgExe = $null
 
-            if (Test-Path -Path $adkPath) {
+            if (Test-Path -Path $localOscdimg) {
+                 $oscdimgExe = $localOscdimg
+            } elseif (Test-Path -Path $adkPath) {
                 $oscdimgExe = $adkPath
-            } elseif (Test-Path -Path $localOscdimg) {
-                $oscdimgExe = $localOscdimg
             } else {
                 $OnProgress.Invoke("Downloading oscdimg.exe...", 97)
                 $url = "https://msdl.microsoft.com/download/symbols/oscdimg.exe/3D44737265000/oscdimg.exe"
@@ -296,29 +345,46 @@ function Build-Tiny11 {
                 $oscdimgExe = $localOscdimg
             }
 
-            # Output ISO to project root (parent of core)
-            $projectRoot = Split-Path -Path $PSScriptRoot -Parent
-            $isoOutput = Join-Path -Path $projectRoot -ChildPath "tiny11.iso"
+            # Output ISO
             $bootData = "2#p0,e,b$($workingDir)\boot\etfsboot.com#pEF,e,b$($workingDir)\efi\microsoft\boot\efisys.bin"
             
             $OnProgress.Invoke("Running oscdimg...", 98)
-            & "$oscdimgExe" '-m' '-o' '-u2' '-udfver102' "-bootdata:$bootData" "$workingDir" "$isoOutput" | Out-Null
+            & "$oscdimgExe" '-m' '-o' '-u2' '-udfver102' "-bootdata:$bootData" "$workingDir" "$OutputPath" | Out-Null
 
-            # Cleanup ISO mount if we did it
-            if ($isMounted -and $IsoPath) { Dismount-DiskImage -ImagePath $IsoPath -ErrorAction SilentlyContinue | Out-Null }
-
-            $OnProgress.Invoke("Build complete! ISO saved to root folder.", 100)
+            $OnProgress.Invoke("Build complete! ISO saved to: $OutputPath", 100)
         }
         catch {
-            if ($isMounted -and $IsoPath) { Dismount-DiskImage -ImagePath $IsoPath -ErrorAction SilentlyContinue | Out-Null }
-            if ($mountDir -and (Get-WindowsImage -Mounted | Where-Object { $_.Path -eq $mountDir })) {
-                # Attempt to unmount, but don't let it mask the original error
-                try { Dismount-WindowsImage -Path $mountDir -Discard -ErrorAction SilentlyContinue | Out-Null } catch {}
-            }
-            
-            # Final cleanup of locked folders can be tricky, we'll leave them if they fail to delete here
-            # to avoid masking the real error. The user can manually delete them or run the script again.
+            # Error is re-thrown, cleanup happens in finally
             throw $_
+        }
+        finally {
+            #---------[ Robust Cleanup ]---------#
+            
+            # 1. Dismount generic mount directory (install.wim) if still mounted
+            if ($mountDir) {
+                $mountedImage = Get-WindowsImage -Mounted -ErrorAction SilentlyContinue | Where-Object { $_.Path -eq $mountDir }
+                if ($mountedImage) {
+                    $OnProgress.Invoke("Cleaning up mounted image...", 99)
+                    # Try to discard changes if we crashed
+                    Dismount-WindowsImage -Path $mountDir -Discard -ErrorAction SilentlyContinue | Out-Null
+                }
+            }
+
+            # 2. Dismount ISO
+            if ($isMounted -and $IsoPath) {
+                # Garbage collect to release any file handles (PowerShell can check hold onto them)
+                [System.GC]::Collect()
+                [System.GC]::WaitForPendingFinalizers()
+                
+                # Retry loop for dismount (sometimes Explorer locks it briefly)
+                for ($i = 0; $i -lt 3; $i++) {
+                   Dismount-DiskImage -ImagePath $IsoPath -ErrorAction SilentlyContinue | Out-Null
+                   if ((Get-DiskImage -ImagePath $IsoPath).Attached -eq $false) {
+                       break
+                   }
+                   Start-Sleep -Milliseconds 500
+                }
+            }
         }
     }
 }

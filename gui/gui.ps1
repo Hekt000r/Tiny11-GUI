@@ -1,8 +1,27 @@
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Windows.Forms
 
-Import-Module "$PSScriptRoot\../core/tiny11.psm1"
+# Helper to find resources in either flat (Prod) or nested (Dev) structure
+function Get-ResourcePath {
+    param($fileName, $relativePath)
+    
+    # 1. Check current directory (Flat/Packaged)
+    $flatPath = Join-Path $PSScriptRoot $fileName
+    if (Test-Path $flatPath) { return $flatPath }
+    
+    # 2. Check relative path (Dev)
+    $devPath = (Resolve-Path "$PSScriptRoot\$relativePath").Path
+    if (Test-Path $devPath) { return $devPath }
+    
+    return $null
+}
 
+# Import Module
+$modulePath = Get-ResourcePath "tiny11.psm1" "..\core\tiny11.psm1"
+if (-not $modulePath) { throw "Could not find tiny11.psm1 module." }
+Import-Module $modulePath
+
+# Load XAML
 [xml]$xaml = Get-Content "$PSScriptRoot/MainWindow.xaml"
 $reader = New-Object System.Xml.XmlNodeReader $xaml
 $window = [Windows.Markup.XamlReader]::Load($reader)
@@ -82,7 +101,7 @@ $ScanBtn.Add_Click({
         
         $result = Get-Tiny11ImageInfo -IsoPath $path
         
-        $IndexCombo.ItemsSource = $result.Images
+        $IndexCombo.ItemsSource = @($result.Images)
         if ($result.Images.Count -gt 0) {
             $IndexCombo.SelectedIndex = 0
         }
@@ -145,7 +164,7 @@ $BuildBtn.Add_Click({
         $ps = [PowerShell]::Create()
         $ps.Runspace = $rs
         
-        $modulePath = (Resolve-Path "$PSScriptRoot\..\core\tiny11.psm1").Path
+ 
         
         # Unblock module as a precaution
         Unblock-File -Path $modulePath -ErrorAction SilentlyContinue
@@ -160,7 +179,11 @@ $BuildBtn.Add_Click({
             try {
                 Import-Module '$modulePath' -ErrorAction Stop
                 
-                Build-Tiny11 -IsoPath '$isoPath' -ScratchDrive '$scratchDrive' -ImageIndex $selectedEdition -RemoveEdge `$$removeEdgeVal -DisableTelemetry `$$telemetryVal -OnProgress {
+                # Determine Output Path (we pass explicit output path or let module handle it?)
+                # Actually, let's calculate it here to show user or logic. 
+                # The module's new logic handles null, but let's pass null safely.
+                
+                Build-Tiny11 -IsoPath '$isoPath' -ScratchDrive '$scratchDrive' -ImageIndex $selectedEdition -RemoveEdge `$$removeEdgeVal -DisableTelemetry `$$telemetryVal -OutputPath `$null -OnProgress {
                     param(`$msg, `$pct)
                     `$sync.Percent = `$pct
                     `$sync.Status = `$msg
