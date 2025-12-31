@@ -29,6 +29,11 @@ The "Scratch Drive" option is basically where the temporary files will be stored
 Finally, hit "Start building Tiny11" and the build proccess will begin.
 Depending on your hardware, it might take 5-30 minutes.
 
+Final install stats (With Windows 11 LTSC Image) + (VMware Tools)
+Size: 15.0 GB
+Processes: 110 Threads: 1190 Handles: 39315
+
+
 ## What is removed?
 
 **NOTE:** Stuff you might need (Like XBOX app for games) can be re-installed. Windows Update and Windows Defender are still 100% functional, those haven't been touched.
