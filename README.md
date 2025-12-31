@@ -7,6 +7,9 @@ Credits to [NTDEV](https://github.com/ntdevlabs) for the [original Tiny11 builde
 
 ## How to use
 
+Download Tiny11Builder.exe from [the latest release](https://github.com/Hekt000r/Tiny11-GUI/releases)
+
+
 The GUI is very simple.
 
 <img src="https://i.imgur.com/ap2ZD46.png" alt="Screenshot of Tiny11-GUI" height="400">
