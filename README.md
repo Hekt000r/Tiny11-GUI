@@ -29,6 +29,80 @@ The "Scratch Drive" option is basically where the temporary files will be stored
 Finally, hit "Start building Tiny11" and the build proccess will begin.
 Depending on your hardware, it might take 5-30 minutes.
 
+## What is removed?
+
+**NOTE:** Stuff you might need (Like XBOX app for games) can be re-installed. Windows Update and Windows Defender are still 100% functional, those haven't been touched.
+
+| Item / Change | Type |
+| :--- | :--- |
+| AppUp.IntelManagementandSecurityStatus | App Removal |
+| Clipchamp.Clipchamp | App Removal |
+| DolbyLaboratories.DolbyAccess | App Removal |
+| DolbyLaboratories.DolbyDigitalPlusDecoderOEM | App Removal |
+| Microsoft.BingNews | App Removal |
+| Microsoft.BingSearch | App Removal |
+| Microsoft.BingWeather | App Removal |
+| Microsoft.Copilot | App Removal |
+| Microsoft.Windows.CrossDevice | App Removal |
+| Microsoft.GamingApp | App Removal |
+| Microsoft.GetHelp | App Removal |
+| Microsoft.Getstarted | App Removal |
+| Microsoft.Microsoft3DViewer | App Removal |
+| Microsoft.MicrosoftOfficeHub | App Removal |
+| Microsoft.MicrosoftSolitaireCollection | App Removal |
+| Microsoft.MicrosoftStickyNotes | App Removal |
+| Microsoft.MixedReality.Portal | App Removal |
+| Microsoft.MSPaint | App Removal |
+| Microsoft.Office.OneNote | App Removal |
+| Microsoft.OfficePushNotificationUtility | App Removal |
+| Microsoft.OutlookForWindows | App Removal |
+| Microsoft.Paint | App Removal |
+| Microsoft.People | App Removal |
+| Microsoft.PowerAutomateDesktop | App Removal |
+| Microsoft.SkypeApp | App Removal |
+| Microsoft.StartExperiencesApp | App Removal |
+| Microsoft.Todos | App Removal |
+| Microsoft.Wallet | App Removal |
+| Microsoft.Windows.DevHome | App Removal |
+| Microsoft.Windows.Copilot | App Removal |
+| Microsoft.Windows.Teams | App Removal |
+| Microsoft.WindowsAlarms | App Removal |
+| Microsoft.WindowsCamera | App Removal |
+| microsoft.windowscommunicationsapps | App Removal |
+| Microsoft.WindowsFeedbackHub | App Removal |
+| Microsoft.WindowsMaps | App Removal |
+| Microsoft.WindowsSoundRecorder | App Removal |
+| Microsoft.WindowsTerminal | App Removal |
+| Microsoft.Xbox.TCUI | App Removal |
+| Microsoft.XboxApp | App Removal |
+| Microsoft.XboxGameOverlay | App Removal |
+| Microsoft.XboxGamingOverlay | App Removal |
+| Microsoft.XboxIdentityProvider | App Removal |
+| Microsoft.XboxSpeechToTextOverlay | App Removal |
+| Microsoft.YourPhone | App Removal |
+| Microsoft.ZuneMusic | App Removal |
+| Microsoft.ZuneVideo | App Removal |
+| MicrosoftCorporationII.MicrosoftFamily | App Removal |
+| MicrosoftCorporationII.QuickAssist | App Removal |
+| MSTeams / MicrosoftTeams | App Removal |
+| Microsoft.549981C3F5F10 (Cortana) | App Removal |
+| Microsoft Edge (Browser, Update, WebView) | File Removal |
+| OneDrive (OneDriveSetup.exe) | File Removal |
+| BypassCPUCheck | Registry Tweak |
+| BypassRAMCheck | Registry Tweak |
+| BypassSecureBootCheck | Registry Tweak |
+| BypassStorageCheck | Registry Tweak |
+| BypassTPMCheck | Registry Tweak |
+| AllowUpgradesWithUnsupportedTPMOrCPU | Registry Tweak |
+| UnsupportedHardwareNotificationCache | Registry Tweak |
+| AllowTelemetry (Disabled) | Registry Tweak |
+| AdvertisingInfo (Disabled) | Registry Tweak |
+| StartComponentCleanup / ResetBase | System Optimization |
+| autounattend.xml integration | Automation |
+
+
+
+
 ## Technical Details:
 
 I wanted this to be as simple as possible, so im using WPF + Powershell, making the UI very lightweight and simple.
